@@ -11,7 +11,6 @@ import java.util.List;
 
 import javax.swing.ButtonGroup;
 import javax.swing.JButton;
-import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JDialog;
 import javax.swing.JFormattedTextField;
@@ -23,6 +22,8 @@ import javax.swing.SwingConstants;
 import javax.swing.border.TitledBorder;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
+import javax.swing.event.TableModelEvent;
+import javax.swing.event.TableModelListener;
 import javax.swing.text.MaskFormatter;
 
 import org.apache.commons.lang3.StringUtils;
@@ -34,6 +35,7 @@ import com.free.app.ticket.model.TrainData4UI;
 import com.free.app.ticket.model.TrainData4UI.BuyModel;
 import com.free.app.ticket.model.TrainData4UI.SeatOptionType;
 import com.free.app.ticket.model.TrainData4UI.UserTrainInfo;
+import com.free.app.ticket.model.TrainInfo;
 
 public class ConfigDialog extends JDialog {
     private static final long serialVersionUID = 1L;
@@ -52,6 +54,8 @@ public class ConfigDialog extends JDialog {
     
     private FuzzyPanel fuzzyPanel;
     
+    private SelTrainPanel trainPanel;
+    
     private TrainData4UI trainData;
     
     private ConfigDialog(TrainData4UI data) {
@@ -62,22 +66,28 @@ public class ConfigDialog extends JDialog {
         setModal(true);
         setResizable(false);
         setTitle("车次设置");
-        setSize(400, 300);
+        setSize(400, 620);
     }
     
     private void init() {
         Container c = getContentPane();
-        c.setLayout(new BorderLayout());
+        c.setLayout(null);
         
         JPanel centerPanel = new JPanel();
+        centerPanel.setBounds(0, 0, 400, 240);
         centerPanel.setLayout(null);
         initCenterPanel(centerPanel);
         c.add(centerPanel);
         
+        trainPanel = new SelTrainPanel();
+        trainPanel.setBounds(10, 250, 380, 300);
+        trainPanel.setLayout(null);
+        initTrainPanel();
+        c.add(trainPanel);
+        
         JPanel operatePanel = new JPanel();
-        FlowLayout fl = new FlowLayout();
-        fl.setHgap(15);
-        operatePanel.setLayout(fl);
+        operatePanel.setBounds(0, 560, 400, 50);
+        operatePanel.setLayout(new FlowLayout());
         okButton = new JButton("确定");
         okButton.addActionListener(new ActionListener() {
             @Override
@@ -135,13 +145,32 @@ public class ConfigDialog extends JDialog {
         modelChoose.add(fuzzyModelBtn);
         centerPanel.add(modelChoose);
         
+        // 默认精确买票
+        preciseModelBtn.setSelected(true);
+        
         precisePanel = new PrecisePanel();
-        precisePanel.setVisible(false);
+        precisePanel.setVisible(true);
         centerPanel.add(precisePanel);
         
         fuzzyPanel = new FuzzyPanel();
         fuzzyPanel.setVisible(false);
         centerPanel.add(fuzzyPanel);
+    }
+    
+    private void initTrainPanel() {
+        trainPanel.getTableModel().addTableModelListener(new TableModelListener() {
+
+            @Override
+            public void tableChanged(TableModelEvent e) {
+                // TODO Auto-generated method stub
+                if (e.getColumn() == 0 && e.getFirstRow() == e.getLastRow()) {
+                    List<TrainInfo> trains = trainPanel.getSelectTrains();
+                    precisePanel.bindModeltoUI(trains);
+                    return;
+                }
+            }
+            
+        });
     }
     
     public void bindUItoModel() {
@@ -192,9 +221,9 @@ public class ConfigDialog extends JDialog {
         
         private TrainTextField[] trainTexts;
         
-        private JComboBox[] boxBest;
+        private JComboBox<Object>[] boxBest;
         
-        private JComboBox[] boxWorst;
+        private JComboBox<Object>[] boxWorst;
         
         public PrecisePanel() {
             this.setBounds(10, 50, 380, 180);
@@ -217,7 +246,7 @@ public class ConfigDialog extends JDialog {
                 trainTexts[i] = field;
                 this.add(field);
                 
-                JComboBox comboBox = new JComboBox();
+                JComboBox<Object> comboBox = new JComboBox<Object>();
                 comboBox.setToolTipText("最希望买到的席别");
                 comboBox.setBounds(140, 21 + heightOneRow * i, 105, 21);
                 boxBest[i] = comboBox;
@@ -229,12 +258,33 @@ public class ConfigDialog extends JDialog {
                 label.setHorizontalAlignment(SwingConstants.CENTER);
                 this.add(label);
                 
-                comboBox = new JComboBox();
+                comboBox = new JComboBox<Object>();
                 comboBox.setToolTipText("实在买不到还能接受的席别，两者之间的席别也会进行购买");
                 boxWorst[i] = comboBox;
                 comboBox.setBounds(275, 21 + heightOneRow * i, 105, 21);
                 this.add(comboBox);
                 
+            }
+        }
+        
+        public void bindModeltoUI(List<TrainInfo> trains) {
+            if (trains == null)
+                return;
+            for (int i = 0; i < trains.size(); i++) {
+                TrainInfo train = trains.get(i);
+                if (train != null) {
+                    SeatOptionType optionType = SeatOptionType.getType(train.getStation_train_code().charAt(0));
+                    if (optionType != null) {
+                        trainTexts[i].setText(train.getStation_train_code());
+                        optionType.initItem(boxBest[i], (optionType == SeatOptionType.GAOTIE) ? SeatOptionType.GAOTIEITEMS[0] : SeatOptionType.OTHERITEMS[2]);
+                        optionType.initItem(boxWorst[i], (optionType == SeatOptionType.GAOTIE) ? SeatOptionType.GAOTIEITEMS[3] : SeatOptionType.OTHERITEMS[5]);
+                    }
+                }
+            }
+            for (int i = trains.size(); i < 5; i++) {
+                trainTexts[i].setText("");
+                boxBest[i].setSelectedItem("");
+                boxWorst[i].setSelectedItem("");
             }
         }
         
@@ -325,17 +375,9 @@ public class ConfigDialog extends JDialog {
         
         private JFormattedTextField endTime;
         
-        private JCheckBox gaotieCheck;
+        private JComboBox<Object> gaotieBoxBest;
         
-        private JCheckBox otherCheck;
-        
-        private JComboBox gaotieBoxBest;
-        
-        private JComboBox gaotieBoxWorst;
-        
-        private JComboBox otherBest;
-        
-        private JComboBox otherWorst;
+        private JComboBox<Object> gaotieBoxWorst;
         
         /**
          * 注释内容
@@ -370,7 +412,7 @@ public class ConfigDialog extends JDialog {
             this.add(endTime);
             endTime.setColumns(8);
             
-            gaotieBoxBest = new JComboBox();
+            gaotieBoxBest = new JComboBox<Object>();
             gaotieBoxBest.setToolTipText("最希望买到的席别");
             gaotieBoxBest.setBounds(130, 21 + heightOneRow * 1, 100, 21);
             SeatOptionType.GAOTIE.initItem(gaotieBoxBest, null);
@@ -382,7 +424,7 @@ public class ConfigDialog extends JDialog {
             label.setHorizontalAlignment(SwingConstants.CENTER);
             this.add(label);
             
-            gaotieBoxWorst = new JComboBox();
+            gaotieBoxWorst = new JComboBox<Object>();
             gaotieBoxWorst.setToolTipText("实在买不到还能接受的席别，两者之间的席别也会进行购买");
             gaotieBoxWorst.setBounds(260, 21 + heightOneRow * 1, 100, 21);
             SeatOptionType.GAOTIE.initItem(gaotieBoxWorst, null);

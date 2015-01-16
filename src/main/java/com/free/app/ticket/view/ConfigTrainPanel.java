@@ -15,11 +15,11 @@ import com.free.app.ticket.model.TrainData4UI.UserTrainInfo;
 public class ConfigTrainPanel extends JPanel {
     
     /**
-     * 注释
+     * serialVersionUID
      */
-    private static final long serialVersionUID = -5160355345190642159L;
+    private static final long serialVersionUID = 8712901964335697205L;
 
-    private static List<JCheckBox> boxs = null;
+    private static List<JCheckBox> boxes = null;
     
     private static List<UserTrainInfo> selTrainInfo = null;
     
@@ -34,7 +34,7 @@ public class ConfigTrainPanel extends JPanel {
         
         selTrainInfo = new ArrayList<UserTrainInfo>();
         
-        boxs = new ArrayList<JCheckBox>();
+        boxes = new ArrayList<JCheckBox>();
         
         itemListener = new TrainItemListener();
     }
@@ -53,7 +53,7 @@ public class ConfigTrainPanel extends JPanel {
         
         JCheckBox cb = new JCheckBox(trainInfo.getTrainCode(), true);
         cb.setBounds(10, 7, 60, 20);
-        boxs.add(cb);
+        boxes.add(cb);
         this.add(cb);
         
         cb.addItemListener(itemListener);
@@ -63,14 +63,26 @@ public class ConfigTrainPanel extends JPanel {
     }
     
     /**
+     * 情况抢票车次
+     */
+    public void clearTrains() {
+        for (int i = 0; i < boxes.size(); i++) {
+            JCheckBox cb = boxes.get(i);
+            this.remove(cb);
+        }
+        boxes.clear();
+        selTrainInfo.clear();
+    }
+    
+    /**
      * 获取抢票车次配置
      * @return
      */
     public TrainConfigInfo getTrainConfigInfo() {
         List<UserTrainInfo> userTrains = new ArrayList<UserTrainInfo>();
         
-        for (int i = 0; i < boxs.size(); i++) {
-            JCheckBox cb = boxs.get(i);
+        for (int i = 0; i < boxes.size(); i++) {
+            JCheckBox cb = boxes.get(i);
             if (cb.isSelected()) {
                 UserTrainInfo trainInfo = selTrainInfo.get(i);
                 userTrains.add(trainInfo);
@@ -92,9 +104,9 @@ public class ConfigTrainPanel extends JPanel {
         public void itemStateChanged(ItemEvent e) {
             JCheckBox cb = (JCheckBox)e.getItem();
             if (!cb.isSelected()) {
-                int index = boxs.indexOf(cb);
+                int index = boxes.indexOf(cb);
                 if (index != -1) {
-                    boxs.remove(index);
+                    boxes.remove(index);
                     selTrainInfo.remove(index);
                 }
                 JPanel panel = (JPanel)cb.getParent();

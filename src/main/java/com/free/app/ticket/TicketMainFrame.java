@@ -180,7 +180,7 @@ public class TicketMainFrame extends JFrame {
         
         /****************** 信息输出相关 **********************/
         JScrollPane scrollPane = new JScrollPane();
-        scrollPane.setBounds(10, 420, 780, 245);
+        scrollPane.setBounds(10, 440, 780, 220);
         scrollPane.setBorder(new TitledBorder("运行记录"));
         scrollPane.setViewportBorder(new BevelBorder(BevelBorder.LOWERED, null, null, null, null));
         scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);

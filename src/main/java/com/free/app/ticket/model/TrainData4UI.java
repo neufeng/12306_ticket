@@ -126,10 +126,10 @@ public class TrainData4UI implements Serializable {
         
         private String label;
         
-        private static String[] GAOTIEITEMS =
+        public static String[] GAOTIEITEMS =
         {"二等座", "一等座", "商务座/特等座", "无座"};
         
-        private static String[] OTHERITEMS =
+        public static String[] OTHERITEMS =
         {"硬座", "软座", "硬卧", "软卧", "高级软卧", "无座"};
         
         private SeatOptionType(String label) {

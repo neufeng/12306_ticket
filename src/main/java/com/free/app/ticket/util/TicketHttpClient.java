@@ -113,9 +113,8 @@ public class TicketHttpClient {
     
     /* loginUrl = path + "image" + File.separator + "passcode-login.jpg"; */
     
-    private TicketHttpClient(String JSESSIONID, String BIGipServerotn) {
-        this.JSESSIONID = JSESSIONID;
-        this.BIGipServerotn = BIGipServerotn;
+    private TicketHttpClient() {
+        getCookies();
     }
     
     /**
@@ -123,77 +122,91 @@ public class TicketHttpClient {
      * @return
      */
     public static TicketHttpClient getInstance() {
-        if (logger.isDebugEnabled()) {
-            logger.debug("获取cookies");
-            logger.debug("[get url] {}", UrlConstants.GET_LOGIN_INIT_URL);
-        }
+        TicketHttpClient instance = new TicketHttpClient();
         
-        TicketHttpClient instance = null;
-        HttpClient httpclient = buildHttpClient();
-        HttpGet get = new HttpGet(UrlConstants.GET_LOGIN_INIT_URL);
-        HttpHeader.setLoginInitHeader(get);
-        
-        String JSESSIONID = null;
-        String BIGipServerotn = null;
-        InputStream is = null;
-        String loginDynamicJs = null;
-        try {
-            HttpResponse response = httpclient.execute(get);
-            Header[] headers = response.getAllHeaders();
-            
-            boolean isGzip = false;
-            for (int i = 0; i < headers.length; i++) {
-                if (headers[i].getName().equals("Set-Cookie")) {
-                    String cookie[] = headers[i].getValue().split("=");
-                    String cookieName = cookie[0];
-                    String cookieValue = cookie[1].split(";")[0];
-                    if (cookieName.equals("JSESSIONID")) {
-                        JSESSIONID = cookieValue;
-                    }
-                    if (cookieName.equals("BIGipServerotn")) {
-                        BIGipServerotn = cookieValue;
-                    }
-                }
-                else if ("Content-Encoding".equals(headers[i].getName()) && "gzip".equals(headers[i].getValue())) {
-                    isGzip = true;
-                }
-            }
-            
-            if (JSESSIONID != null && BIGipServerotn != null) {
-                is = response.getEntity().getContent();
-                String responseBody;
-                if (isGzip) {
-                    responseBody = zipInputStream(is);
-                }
-                else {
-                    responseBody = readInputStream(is);
-                }
-                
-                Matcher m_token = PATTERN_DYNAMIC_JS.matcher(responseBody);
-                if (m_token.find()) {
-                    loginDynamicJs = m_token.group(1);
-                }
-                else {
-                    logger.error("httpClient init get loginDynamicJsUrl  fail for unknow reason, check it!");
-                }
-            }
-            logger.info("JSESSIONID = " + JSESSIONID + ";BIGipServerotn = " + BIGipServerotn);
-        }
-        catch (Exception e) {
-            logger.error("getInstance error : ", e);
-        }
-        finally {
-            httpclient.getConnectionManager().shutdown();
-        }
-        
-        if (JSESSIONID != null && BIGipServerotn != null) {
-            instance = new TicketHttpClient(JSESSIONID, BIGipServerotn);
-            if (loginDynamicJs != null) {
-                instance.loginKey = instance.getRandomParamKey(loginDynamicJs);
-            }
-        }
+        instance.loginInit();
         
         return instance;
+    }
+    
+    /**
+     * 获取cookies
+     */
+    private void getCookies() {
+        if (logger.isDebugEnabled()) {
+            logger.debug("获取cookies");
+            logger.debug("[get url] {}", UrlConstants.GET_BASE_URL);
+        }
+        
+        HttpGet get = new HttpGet(UrlConstants.GET_BASE_URL);
+        HttpHeader.setCommonHeader(get);
+        
+        try {
+            Header[] headers = doGetHeaderRequest(get);
+            updateSessionId(headers);
+        }
+        catch (Exception e) {
+            logger.error("getCookies error : ", e);
+        }
+    }
+    
+    /**
+     * 更新JSESSIONID,BIGipServerotn,current_captcha_type
+     * @param headers
+     */
+    private void updateSessionId(Header[] headers) {
+        if (headers == null) {
+            return;
+        }
+        
+        for (int i = 0; i < headers.length; i++) {
+            if (headers[i].getName().equals("Set-Cookie")) {
+                String cookie[] = headers[i].getValue().split("=");
+                String cookieName = cookie[0];
+                String cookieValue = cookie[1].split(";")[0];
+                if (cookieName.equals("JSESSIONID")) {
+                    JSESSIONID = cookieValue;
+                }
+                if (cookieName.equals("BIGipServerotn")) {
+                    BIGipServerotn = cookieValue;
+                }
+                if (cookieName.equals("current_captcha_type")) {
+                    current_captcha_type = cookieValue;
+                }
+            }
+        }
+        
+        logger.debug("JSESSIONID Changed");
+        logger.debug("JSESSIONID = " + JSESSIONID + ";BIGipServerotn = " + BIGipServerotn + ";current_captcha_type = " + current_captcha_type);
+    }
+    
+    /**
+     * 登录动态参数
+     */
+    private void loginInit() {
+        HttpGet get = new HttpGet(UrlConstants.GET_LOGIN_INIT_URL);
+        HttpHeader.setLoginInitHeader(get);
+        setCookie(get, null);
+        
+        String loginDynamicJs = null;
+        try {
+            String result = doGetRequest(get);
+            
+            Matcher m_token = PATTERN_DYNAMIC_JS.matcher(result);
+            if (m_token.find()) {
+                loginDynamicJs = m_token.group(1);
+            }
+            else {
+                logger.error("httpClient init get loginDynamicJsUrl  fail for unknow reason, check it!");
+            }
+        }
+        catch (Exception e) {
+            logger.error("获取登录key出错", e);
+        }
+        
+        if (loginDynamicJs != null) {
+            this.loginKey = getRandomParamKey(loginDynamicJs);
+        }
     }
     
     /**
@@ -265,33 +278,24 @@ public class TicketHttpClient {
         }
     }
     
-    public File buildLoginCodeImage() {
+    private File buildCodeImage(String url, String suffix) {
         if (logger.isDebugEnabled()) {
             logger.debug("获取验证码");
-            logger.debug("[get url] {}", UrlConstants.GET_LOGIN_PASSCODE_URL);
+            logger.debug("[get url] {}", url);
         }
         
         HttpClient httpclient = buildHttpClient();
-        HttpGet get = new HttpGet(UrlConstants.GET_LOGIN_PASSCODE_URL);
+        HttpGet get = new HttpGet(url);
         HttpHeader.setLoginAuthCodeHeader(get);
         setCookie(get, null);
         
-        File file = new File(System.getProperty("java.io.tmpdir") + File.separator + JSESSIONID + ".login.jpg");
+        File file = new File(System.getProperty("java.io.tmpdir") + File.separator + JSESSIONID + suffix);
         OutputStream out = null;
         InputStream is = null;
         try {
             HttpResponse response = httpclient.execute(get);
             Header[] headers = response.getAllHeaders();
-            for (int i = 0; i < headers.length; i++) {
-                if (headers[i].getName().equals("Set-Cookie")) {
-                    String cookie[] = headers[i].getValue().split("=");
-                    String cookieName = cookie[0];
-                    String cookieValue = cookie[1].split(";")[0];
-                    if (cookieName.equals("current_captcha_type")) {
-                        current_captcha_type = cookieValue;
-                    }
-                }
-            }
+            updateSessionId(headers);
             
             HttpEntity entity = response.getEntity();
             if (entity != null) {
@@ -306,7 +310,7 @@ public class TicketHttpClient {
         }
         catch (Exception e) {
             file = null;
-            logger.error("buildLoginCodeImage error : ", e);
+            logger.error("buildCodeImage error : ", e);
         }
         finally {
             if (is != null) {
@@ -326,6 +330,15 @@ public class TicketHttpClient {
             httpclient.getConnectionManager().shutdown();
         }
         return file;
+    }
+    
+    public File buildLoginCodeImage() {
+        if (logger.isDebugEnabled()) {
+            logger.debug("获取登录验证码");
+            logger.debug("[get url] {}", UrlConstants.GET_LOGIN_PASSCODE_URL);
+        }
+        
+        return buildCodeImage(UrlConstants.GET_LOGIN_PASSCODE_URL, ".login.jpg");
     }
     
     public boolean checkLoginAuthcode(String authCode) {
@@ -769,49 +782,8 @@ public class TicketHttpClient {
             logger.debug("---ajax get 获取提交订单验证码---");
             logger.debug("[get url] {}", UrlConstants.GET_ORDER_PASSCODE_URL);
         }
-        HttpClient httpclient = buildHttpClient();
-        HttpGet get = new HttpGet(UrlConstants.GET_ORDER_PASSCODE_URL);
-        HttpHeader.setLoginAuthCodeHeader(get);
-        setCookie(get, cookies);
         
-        File file = new File(System.getProperty("java.io.tmpdir") + File.separator + JSESSIONID + ".order.jpg");
-        OutputStream out = null;
-        InputStream is = null;
-        try {
-            HttpResponse response = httpclient.execute(get);
-            HttpEntity entity = response.getEntity();
-            if (entity != null) {
-                is = entity.getContent();
-                out = new FileOutputStream(file);
-                int readByteCount = -1;
-                byte[] buffer = new byte[256];
-                while ((readByteCount = is.read(buffer)) != -1) {
-                    out.write(buffer, 0, readByteCount);
-                }
-            }
-        }
-        catch (Exception e) {
-            file = null;
-            logger.error("buildOrderCodeImage error : ", e);
-        }
-        finally {
-            if (is != null) {
-                try {
-                    is.close();
-                }
-                catch (IOException e) {
-                }
-            }
-            if (out != null) {
-                try {
-                    out.close();
-                }
-                catch (IOException e) {
-                }
-            }
-            httpclient.getConnectionManager().shutdown();
-        }
-        return file;
+        return buildCodeImage(UrlConstants.GET_ORDER_PASSCODE_URL, ".order.jpg");
     }
     
     public JsonMsg4CheckOrder checkOrderAuthcode(String authCode, String token, List<PassengerData> passengers,
@@ -1130,7 +1102,6 @@ public class TicketHttpClient {
         InputStream is = null;
         try {
             HttpResponse response = httpclient.execute(request);
-            
             Header[] headers = response.getAllHeaders();
             boolean isGzip = false;
             for (int i = 0; i < headers.length; i++) {
@@ -1166,6 +1137,33 @@ public class TicketHttpClient {
                 logger.debug("[responseBody] {}", responseBody);
         }
         return responseBody;
+    }
+    
+    /**
+     * 公有获取请求返回头
+     * @param request
+     * @return
+     */
+    private Header[] doGetHeaderRequest(HttpGet request) {
+        if (logger.isDebugEnabled()) {
+            logger.debug("[get url] {}", request.getURI().toString());
+        }
+        HttpClient httpclient = buildHttpClient();
+        
+        Header[] headers = null;
+        try {
+            HttpResponse response = httpclient.execute(request);
+            
+            headers = response.getAllHeaders();   
+        }
+        catch (Exception e) {
+            logger.error("doGetHeaderRequest error:", e);
+        }
+        finally {
+            httpclient.getConnectionManager().shutdown();
+        }
+
+        return headers;
     }
     
     private void setCookie(HttpRequestBase request, Map<String, String> cookieMap) {

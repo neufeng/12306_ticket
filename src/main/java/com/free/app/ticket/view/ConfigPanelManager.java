@@ -109,6 +109,7 @@ public class ConfigPanelManager {
                     if (trains == null) {
                         return;
                     }
+                    trainPanel.clearTrains();
                     for (int i = 0; i < trains.length; i++) {
                         UserTrainInfo train = trains[i];
                         if (train != null) {

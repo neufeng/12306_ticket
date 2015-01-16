@@ -162,6 +162,8 @@ public class AutoBuyThreadService extends Thread {
                     break;
                 }
                 else if (submitResult.contains("网络繁忙")) {
+                    TicketMainFrame.trace("预定失败，即将重试..");
+                    restart();
                     break;
                 }
                 else {
@@ -199,9 +201,6 @@ public class AutoBuyThreadService extends Thread {
                         }
                     }
                     waitFlag = true;
-                    
-                    restart();
-                    break;
                 }
             }
         }
