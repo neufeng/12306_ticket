@@ -61,6 +61,8 @@ import com.free.app.ticket.model.JsonMsg4ConfirmQueue;
 import com.free.app.ticket.model.JsonMsg4Contacter;
 import com.free.app.ticket.model.JsonMsg4LeftTicket;
 import com.free.app.ticket.model.JsonMsg4Login;
+import com.free.app.ticket.model.JsonMsg4QueryTicket;
+import com.free.app.ticket.model.JsonMsg4QueryTicket.TicketQueryInfo;
 import com.free.app.ticket.model.JsonMsg4QueryWait;
 import com.free.app.ticket.model.JsonMsg4QueueCount;
 import com.free.app.ticket.model.JsonMsg4SubmitOrder;
@@ -100,7 +102,7 @@ public class TicketHttpClient {
     
     private static final int DEBBUG_MAX_COUNT = 1000;
     
-    private String query_url = UrlConstants.REQ_TICKET_QUERY_URL;
+    private String query_url = UrlConstants.GET_TICKET_QUERY_URL;
     
     private static final Pattern PATTERN_DYNAMIC_JS = Pattern.compile("/otn/dynamicJs/(\\w+)");
     
@@ -279,17 +281,12 @@ public class TicketHttpClient {
     }
     
     private File buildCodeImage(String url, String suffix) {
-        if (logger.isDebugEnabled()) {
-            logger.debug("获取验证码");
-            logger.debug("[get url] {}", url);
-        }
-        
         HttpClient httpclient = buildHttpClient();
         HttpGet get = new HttpGet(url);
         HttpHeader.setLoginAuthCodeHeader(get);
         setCookie(get, null);
         
-        File file = new File(System.getProperty("java.io.tmpdir") + File.separator + JSESSIONID + suffix);
+        File file = new File(System.getProperty("user.dir") + File.separator + "passcode" + File.separator + System.currentTimeMillis() + suffix);
         OutputStream out = null;
         InputStream is = null;
         try {
@@ -329,6 +326,7 @@ public class TicketHttpClient {
             }
             httpclient.getConnectionManager().shutdown();
         }
+        
         return file;
     }
     
@@ -338,7 +336,7 @@ public class TicketHttpClient {
             logger.debug("[get url] {}", UrlConstants.GET_LOGIN_PASSCODE_URL);
         }
         
-        return buildCodeImage(UrlConstants.GET_LOGIN_PASSCODE_URL, ".login.jpg");
+        return buildCodeImage(UrlConstants.GET_LOGIN_PASSCODE_URL, ".login.png");
     }
     
     public boolean checkLoginAuthcode(String authCode) {
@@ -555,7 +553,7 @@ public class TicketHttpClient {
             }
         }
         catch (JSONException e) {
-            query_url = UrlConstants.REQ_TICKET_QUERY_URL2;
+            query_url = UrlConstants.GET_TICKET_QUERY_URL2;
             logger.error("查询余票异常，内容异常", e);
             TicketMainFrame.remind("查询余票异常，内容异常");
         }
@@ -565,6 +563,63 @@ public class TicketHttpClient {
         }
         
         return result;
+    }
+    public List<TrainInfo> queryLeftTicket(TicketConfigInfo configInfo) {
+        if (logger.isDebugEnabled()) {
+            logger.debug("---ajax get 查询余票信息---");
+        }
+        List<NameValuePair> params = new ArrayList<NameValuePair>();
+        params.add(new BasicNameValuePair("purpose_codes", configInfo.getPurpose_codes()));
+        params.add(new BasicNameValuePair("queryDate", configInfo.getTrain_date()));
+        params.add(new BasicNameValuePair("from_station", configInfo.getFrom_station()));
+        params.add(new BasicNameValuePair("to_station", configInfo.getTo_station()));
+        String paramsUrl = URLEncodedUtils.format(params, "UTF-8");
+        
+        HttpGet get = new HttpGet(UrlConstants.GET_TICKET_QUERY_URL3 + "?" + paramsUrl);
+        HttpHeader.setGetAjaxHeader(get);
+        setCookie(get, null);
+        
+        List<TrainInfo> result = null;
+        try {
+            String checkResult = doGetRequest(get);
+            JsonMsg4QueryTicket msg = JSONObject.parseObject(checkResult, JsonMsg4QueryTicket.class);
+            if (msg.getStatus()) {
+                TicketQueryInfo info = msg.getData();
+                if (info != null) {
+                    result = info.getDatas();
+                }
+            }
+        }
+        catch (JSONException e) {
+            logger.error("查询余票异常，内容异常", e);
+            TicketMainFrame.remind("查询余票异常，内容异常");
+        }
+        catch (Exception e) {
+            logger.error("查询余票异常", e);
+            TicketMainFrame.remind("查询余票异常");
+        }
+        
+        return result;
+    }
+    
+    /**
+     * 查询余票初始化
+     */
+    public void queryLeftTicketInit() {
+        if (logger.isDebugEnabled()) {
+            logger.debug("---ajax get 查询余票初始化---");
+        }
+        
+        HttpGet get = new HttpGet(UrlConstants.GET_TICKET_QUERY_INIT);
+        HttpHeader.setGetAjaxHeader(get);
+        setCookie(get, null);
+        
+        try {
+            doGetRequest(get);
+        }
+        catch (Exception e) {
+            logger.error("查询余票初始化异常", e);
+        }
     }
     
     /**
@@ -783,7 +838,7 @@ public class TicketHttpClient {
             logger.debug("[get url] {}", UrlConstants.GET_ORDER_PASSCODE_URL);
         }
         
-        return buildCodeImage(UrlConstants.GET_ORDER_PASSCODE_URL, ".order.jpg");
+        return buildCodeImage(UrlConstants.GET_ORDER_PASSCODE_URL, ".order.png");
     }
     
     public JsonMsg4CheckOrder checkOrderAuthcode(String authCode, String token, List<PassengerData> passengers,

@@ -3,10 +3,7 @@ package com.free.app.ticket.view;
 import java.awt.Component;
 import java.awt.FontMetrics;
 import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import javax.swing.JPanel;
 import javax.swing.border.TitledBorder;
@@ -25,7 +22,6 @@ import com.free.app.ticket.TicketMainFrame;
 import com.free.app.ticket.model.TicketConfigInfo;
 import com.free.app.ticket.model.TrainInfo;
 import com.free.app.ticket.service.HttpClientThreadService;
-import com.free.app.ticket.util.DateUtils;
 import com.free.app.ticket.util.TicketHttpClient;
 
 import javax.swing.ScrollPaneConstants;
@@ -121,6 +117,10 @@ public class SelTrainPanel extends JPanel {
             TicketMainFrame.remind("还未配置好查询条件");
             return;
         }
+        
+        //  查询初始化
+        TicketHttpClient client = HttpClientThreadService.getHttpClient();
+        client.queryLeftTicketInit();
         
         Thread t = new Thread(new Runnable() {
 
@@ -279,7 +279,7 @@ public class SelTrainPanel extends JPanel {
         
         TicketMainFrame.trace("查询余票中...");
         TicketHttpClient client = HttpClientThreadService.getHttpClient();
-        List<TrainInfo> trainInfos = client.queryLeftTicket(ticketConfigInfo, getCookie(ticketConfigInfo));
+        List<TrainInfo> trainInfos = client.queryLeftTicket(ticketConfigInfo);
         
         if (trainInfos == null || trainInfos.isEmpty()) {
             return false;
@@ -287,32 +287,6 @@ public class SelTrainPanel extends JPanel {
         
         this.trainData = trainInfos;
         return true;
-    }
-    
-    private Map<String, String> getCookie(TicketConfigInfo config) {
-        Map<String, String> cookies = new HashMap<String, String>();
-        cookies.put("_jc_save_fromStation", getUnicode4Cookie(config.getFrom_station_name(), config.getFrom_station()));
-        cookies.put("_jc_save_toStation", getUnicode4Cookie(config.getTo_station_name(), config.getTo_station()));
-        cookies.put("_jc_save_fromDate", config.getTrain_date());
-        cookies.put("_jc_save_toDate", DateUtils.formatDate(new Date()));
-        cookies.put("_jc_save_wfdc_flag", "dc");
-        cookies.put("_jc_save_showZtkyts", "true");
-        return cookies;
-    }
-    
-    public static String getUnicode4Cookie(String cityName, String cityCode) {
-        String result = "";
-        for (int i = 0; i < cityName.length(); i++) {
-            int chr1 = (char)cityName.charAt(i);
-            if (chr1 >= 19968 && chr1 <= 171941) {// 汉字范围 \u4e00-\u9fa5 (中文)
-                result += "%u" + Integer.toHexString(chr1).toUpperCase();
-            }
-            else {
-                result += cityName.charAt(i);
-            }
-        }
-        result += "%2C" + cityCode;
-        return result;
     }
     
 }

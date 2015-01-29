@@ -21,8 +21,11 @@ public class UrlConstants {
     // 提交订单随机参数url
     public final static String GET_LEFT_TICKET_INIT_URL = "https://kyfw.12306.cn/otn/leftTicket/init";
     // 余票查询url
-    public final static String REQ_TICKET_QUERY_URL = "https://kyfw.12306.cn/otn/leftTicket/queryT";
-    public final static String REQ_TICKET_QUERY_URL2 = "https://kyfw.12306.cn/otn/leftTicket/query";
+    public final static String GET_TICKET_QUERY_URL = "https://kyfw.12306.cn/otn/leftTicket/queryT";
+    public final static String GET_TICKET_QUERY_URL2 = "https://kyfw.12306.cn/otn/leftTicket/query";
+    public final static String GET_TICKET_QUERY_URL3 = "https://kyfw.12306.cn/otn/lcxxcx/query";
+    // 查询初始化
+    public final static String GET_TICKET_QUERY_INIT = "https://kyfw.12306.cn/otn/lcxxcx/init";
     // 查询日志url
     public final static String GET_TICKET_QUERY_LOG_URL = "https://kyfw.12306.cn/otn/leftTicket/log";
     // 提交订单url

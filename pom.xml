@@ -12,6 +12,19 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 	</properties>
 
+	<repositories>   
+        <repository>
+            <id>repo-mirror</id>
+            <url>http://maven.net.cn/content/groups/public/</url>
+        </repository>
+    </repositories>
+    <pluginRepositories>   
+        <pluginRepository>
+            <id>plugin-repo-mirror</id>
+            <url>http://maven.net.cn/content/groups/public/</url>
+        </pluginRepository>
+    </pluginRepositories>
+
 	<dependencies>
 		<!-- htmlparser -->
 		<dependency>
@@ -56,6 +69,11 @@
 			<groupId>io.netty</groupId>
 			<artifactId>netty-all</artifactId>
 			<version>4.0.24.Final</version>
+		</dependency>
+		<dependency>
+			<groupId>net.sourceforge.tess4j</groupId>
+			<artifactId>tess4j</artifactId>
+			<version>1.4.0</version>
 		</dependency>
 	</dependencies>
 
