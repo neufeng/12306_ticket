@@ -221,9 +221,9 @@ public class ConfigDialog extends JDialog {
         
         private TrainTextField[] trainTexts;
         
-        private JComboBox<Object>[] boxBest;
+        private JComboBox[] boxBest;
         
-        private JComboBox<Object>[] boxWorst;
+        private JComboBox[] boxWorst;
         
         public PrecisePanel() {
             this.setBounds(10, 50, 380, 180);
@@ -246,7 +246,7 @@ public class ConfigDialog extends JDialog {
                 trainTexts[i] = field;
                 this.add(field);
                 
-                JComboBox<Object> comboBox = new JComboBox<Object>();
+                JComboBox comboBox = new JComboBox();
                 comboBox.setToolTipText("最希望买到的席别");
                 comboBox.setBounds(140, 21 + heightOneRow * i, 105, 21);
                 boxBest[i] = comboBox;
@@ -258,7 +258,7 @@ public class ConfigDialog extends JDialog {
                 label.setHorizontalAlignment(SwingConstants.CENTER);
                 this.add(label);
                 
-                comboBox = new JComboBox<Object>();
+                comboBox = new JComboBox();
                 comboBox.setToolTipText("实在买不到还能接受的席别，两者之间的席别也会进行购买");
                 boxWorst[i] = comboBox;
                 comboBox.setBounds(275, 21 + heightOneRow * i, 105, 21);
@@ -375,9 +375,9 @@ public class ConfigDialog extends JDialog {
         
         private JFormattedTextField endTime;
         
-        private JComboBox<Object> gaotieBoxBest;
+        private JComboBox gaotieBoxBest;
         
-        private JComboBox<Object> gaotieBoxWorst;
+        private JComboBox gaotieBoxWorst;
         
         /**
          * 注释内容
@@ -412,7 +412,7 @@ public class ConfigDialog extends JDialog {
             this.add(endTime);
             endTime.setColumns(8);
             
-            gaotieBoxBest = new JComboBox<Object>();
+            gaotieBoxBest = new JComboBox();
             gaotieBoxBest.setToolTipText("最希望买到的席别");
             gaotieBoxBest.setBounds(130, 21 + heightOneRow * 1, 100, 21);
             SeatOptionType.GAOTIE.initItem(gaotieBoxBest, null);
@@ -424,7 +424,7 @@ public class ConfigDialog extends JDialog {
             label.setHorizontalAlignment(SwingConstants.CENTER);
             this.add(label);
             
-            gaotieBoxWorst = new JComboBox<Object>();
+            gaotieBoxWorst = new JComboBox();
             gaotieBoxWorst.setToolTipText("实在买不到还能接受的席别，两者之间的席别也会进行购买");
             gaotieBoxWorst.setBounds(260, 21 + heightOneRow * 1, 100, 21);
             SeatOptionType.GAOTIE.initItem(gaotieBoxWorst, null);
